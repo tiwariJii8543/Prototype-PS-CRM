@@ -5,11 +5,12 @@
 
 // Global map variable
 let complaintMap = null;
+let mapComplaints = [];
 
 // Initialize map
 function initMap() {
     // Wait for DOM to be ready
-    setTimeout(() => {
+    setTimeout(async () => {
         const mapContainer = document.getElementById('complaint-map');
         if (!mapContainer) return;
         
@@ -32,6 +33,7 @@ function initMap() {
         }).addTo(complaintMap);
         
         // Add complaint markers
+        mapComplaints = await storage.getAllComplaintsAsync();
         addComplaintMarkers();
         
         // Fit map to markers
@@ -44,11 +46,9 @@ function initMap() {
 // Add complaint markers to map
 function addComplaintMarkers() {
     if (!complaintMap) return;
-    
-    const complaints = storage.getAllComplaints();
     const markers = [];
     
-    complaints.forEach(complaint => {
+    mapComplaints.forEach(complaint => {
         if (complaint.location && complaint.location.lat && complaint.location.lng) {
             const marker = createComplaintMarker(complaint);
             if (marker) {
@@ -117,9 +117,7 @@ function getMarkerColor(priority) {
 // Fit map to show all markers
 function fitMapToMarkers() {
     if (!complaintMap) return;
-    
-    const complaints = storage.getAllComplaints();
-    const validComplaints = complaints.filter(c => 
+    const validComplaints = mapComplaints.filter(c => 
         c.location && c.location.lat && c.location.lng && 
         c.location.lat !== 0 && c.location.lng !== 0
     );
@@ -137,7 +135,7 @@ function filterMapMarkers(status) {
     if (!complaintMap || !window.complaintMarkers) return;
     
     window.complaintMarkers.forEach(marker => {
-        const complaint = storage.getComplaintById(marker._popup._content.match(/PSR-[A-Z0-9]+/)?.[0]);
+        const complaint = mapComplaints.find(item => item.complaintId === marker._popup._content.match(/PSR-[A-Z0-9-]+/)?.[0]);
         if (!complaint) return;
         
         if (status && complaint.status !== status) {
@@ -162,8 +160,7 @@ function filterMapByPriority(priority) {
     });
     
     // Add filtered markers
-    const complaints = storage.getAllComplaints();
-    complaints.forEach(complaint => {
+    mapComplaints.forEach(complaint => {
         if (!priority || complaint.priority === priority) {
             if (complaint.location && complaint.location.lat && complaint.location.lng) {
                 const marker = createComplaintMarker(complaint);

@@ -8,10 +8,18 @@ let priorityChart = null;
 let departmentChart = null;
 let statusChart = null;
 let timelineChart = null;
+let analyticsSnapshot = {
+    stats: null,
+    complaints: []
+};
 
 // Load analytics
-function loadAnalytics() {
-    setTimeout(() => {
+async function loadAnalytics() {
+    setTimeout(async () => {
+        analyticsSnapshot.stats = await storage.getStatisticsAsync();
+        analyticsSnapshot.complaints = storage.apiMode
+            ? await storage.getPublicComplaintsAsync()
+            : await storage.getAllComplaintsAsync();
         initPriorityChart();
         initDepartmentChart();
         initStatusChart();
@@ -25,7 +33,7 @@ function initPriorityChart() {
     const ctx = document.getElementById('priority-chart');
     if (!ctx) return;
     
-    const stats = storage.getStatistics();
+    const stats = analyticsSnapshot.stats || storage.getStatistics();
     
     if (priorityChart) {
         priorityChart.destroy();
@@ -81,7 +89,7 @@ function initDepartmentChart() {
     const ctx = document.getElementById('department-chart');
     if (!ctx) return;
     
-    const stats = storage.getStatistics();
+    const stats = analyticsSnapshot.stats || storage.getStatistics();
     const deptStats = stats.byDepartment;
     
     const departments = Object.values(deptStats).map(d => d.name);
@@ -153,7 +161,7 @@ function initStatusChart() {
     const ctx = document.getElementById('status-chart');
     if (!ctx) return;
     
-    const stats = storage.getStatistics();
+    const stats = analyticsSnapshot.stats || storage.getStatistics();
     
     if (statusChart) {
         statusChart.destroy();
@@ -162,21 +170,21 @@ function initStatusChart() {
     statusChart = new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: ['Pending', 'Verified', 'Work Started', 'Resolved', 'Delayed'],
+            labels: ['Assigned', 'In Progress', 'Awaiting Verification', 'Closed', 'Escalated'],
             datasets: [{
                 data: [
-                    stats.pending,
-                    stats.verified,
-                    stats.workStarted,
-                    stats.resolved,
-                    stats.delayed
+                    stats.assigned || 0,
+                    stats.workStarted || 0,
+                    stats.awaitingVerification || 0,
+                    stats.closed || 0,
+                    stats.escalated || 0
                 ],
                 backgroundColor: [
                     '#ffc107', // Pending - Yellow
-                    '#0dcaf0', // Verified - Cyan
-                    '#0d6efd', // Work Started - Blue
-                    '#198754', // Resolved - Green
-                    '#dc3545'  // Delayed - Red
+                    '#0d6efd', // In progress - Blue
+                    '#0dcaf0', // Awaiting verification - Cyan
+                    '#198754', // Closed - Green
+                    '#dc3545'  // Escalated - Red
                 ],
                 borderWidth: 2,
                 borderColor: '#fff'
@@ -211,7 +219,7 @@ function initTimelineChart() {
     const ctx = document.getElementById('timeline-chart');
     if (!ctx) return;
     
-    const complaints = storage.getAllComplaints();
+    const complaints = analyticsSnapshot.complaints || storage.getAllComplaints();
     
     // Group complaints by date
     const dateGroups = {};
@@ -274,7 +282,7 @@ function initTimelineChart() {
 
 // Load stats cards
 function loadStatsCards() {
-    const stats = storage.getStatistics();
+    const stats = analyticsSnapshot.stats || storage.getStatistics();
     
     // Update cards
     document.getElementById('analytics-total').textContent = stats.total;
@@ -287,8 +295,15 @@ function loadStatsCards() {
         ((stats.resolved / stats.total) * 100).toFixed(1) : 0;
     document.getElementById('analytics-resolution-rate').textContent = resolutionRate + '%';
     
-    // Calculate average resolution time (mock for now)
-    document.getElementById('analytics-avg-time').textContent = '5.2 days';
+    const closedComplaints = (analyticsSnapshot.complaints || []).filter(c => c.closedAt);
+    const avgDays = closedComplaints.length
+        ? (
+            closedComplaints.reduce((sum, complaint) => {
+                return sum + ((new Date(complaint.closedAt) - new Date(complaint.createdAt)) / (1000 * 60 * 60 * 24));
+            }, 0) / closedComplaints.length
+        ).toFixed(1)
+        : '0.0';
+    document.getElementById('analytics-avg-time').textContent = `${avgDays} days`;
     
     // Update category breakdown
     const categoryBreakdown = document.getElementById('category-breakdown');
@@ -330,13 +345,7 @@ function loadStatsCards() {
 
 // Refresh analytics
 function refreshAnalytics() {
-    if (priorityChart) {
-        initPriorityChart();
-        initDepartmentChart();
-        initStatusChart();
-        initTimelineChart();
-        loadStatsCards();
-    }
+    loadAnalytics();
 }
 
 // Export functions

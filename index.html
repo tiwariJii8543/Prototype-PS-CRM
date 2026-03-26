@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <div id="toast-container" class="toast-container"></div>
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -24,55 +25,55 @@
             </div>
             
             <nav class="sidebar-nav">
-                <div class="nav-section">Main Menu</div>
+                <div class="nav-section" id="nav-section-main">Main Menu</div>
                 
                 <div class="nav-item active" data-section="home">
                     <i class="fas fa-home"></i>
-                    <span>Home</span>
+                    <span id="nav-home-text">Home</span>
                 </div>
                 
                 <div class="nav-item" data-section="citizen-portal">
                     <i class="fas fa-user-plus"></i>
-                    <span>Submit Complaint</span>
+                    <span id="nav-submit-text">Submit Complaint</span>
                 </div>
                 
                 <div class="nav-item" data-section="tracking">
                     <i class="fas fa-search"></i>
-                    <span>Track Complaint</span>
+                    <span id="nav-track-text">Track Complaint</span>
                 </div>
                 
                 <div class="nav-item" data-section="public-portal">
                     <i class="fas fa-globe"></i>
-                    <span>Public Portal</span>
+                    <span id="nav-public-text">Public Portal</span>
+                </div>
+
+                <div class="nav-item" data-section="map-view">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span id="nav-map-text">Map View</span>
                 </div>
                 
-                <div class="nav-section admin-only">Department</div>
+                <div class="nav-section department-only" id="nav-section-department">Department</div>
                 
-                <div class="nav-item admin-only" data-section="department-dashboard">
+                <div class="nav-item department-only" data-section="department-dashboard">
                     <i class="fas fa-building"></i>
-                    <span>Department Dashboard</span>
+                    <span id="nav-department-text">Department Dashboard</span>
                 </div>
                 
-                <div class="nav-section admin-only">Admin</div>
+                <div class="nav-section admin-only" id="nav-section-admin">Admin</div>
                 
                 <div class="nav-item admin-only" data-section="admin-dashboard">
                     <i class="fas fa-cog"></i>
-                    <span>Admin Dashboard</span>
-                </div>
-                
-                <div class="nav-item admin-only" data-section="map-view">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span>Map View</span>
-                </div>
-                
-                <div class="nav-item admin-only" data-section="analytics">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Analytics</span>
+                    <span id="nav-admin-dashboard-text">Admin Dashboard</span>
                 </div>
                 
                 <div class="nav-item admin-only" data-section="blockchain-log">
                     <i class="fas fa-link"></i>
-                    <span>Blockchain Log</span>
+                    <span id="nav-blockchain-text">Blockchain Log</span>
+                </div>
+
+                <div class="nav-item admin-only" data-section="analytics">
+                    <i class="fas fa-chart-bar"></i>
+                    <span id="nav-analytics-text">Analytics</span>
                 </div>
             </nav>
         </aside>
@@ -81,13 +82,23 @@
         <main class="main-content">
             <!-- Page Header -->
             <header class="page-header">
+                <button id="back-button" class="btn btn-secondary" style="display:none; margin-right: 12px;" onclick="navigateBack()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
                 <div>
                     <h2 id="page-title">Smart Public Service CRM</h2>
                     <p class="text-muted" id="page-subtitle">Blockchain-Enabled Transparent Grievance Management</p>
                 </div>
                 <div class="d-flex align-center gap-2">
-                    <button class="btn btn-primary" onclick="openLoginModal()">
-                        <i class="fas fa-sign-in-alt"></i> Login
+                    <select id="language-select" class="form-control language-select">
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="bn">বাংলা</option>
+                        <option value="ta">தமிழ்</option>
+                        <option value="te">తెలుగు</option>
+                    </select>
+                    <button id="header-login-btn" class="btn btn-primary" onclick="openUserTypeModal()">
+                        <i class="fas fa-sign-in-alt"></i> <span id="header-login-label">Login</span>
                     </button>
                     <div id="user-display"></div>
                 </div>
@@ -98,25 +109,25 @@
                 <!-- ==================== HOME SECTION ==================== -->
                 <section id="home" class="section active">
                     <div class="hero-section">
-                        <h1>Welcome to Smart PS-CRM</h1>
-                        <p>Report civic issues, track resolutions, and hold departments accountable through transparent blockchain-powered grievance management.</p>
+                        <h1 id="home-hero-title">Welcome to Smart PS-CRM</h1>
+                        <p id="home-hero-blurb">Report civic issues, track resolutions, and hold departments accountable through transparent blockchain-powered grievance management.</p>
                         
                         <div class="quick-actions">
-                            <button class="quick-action-btn" onclick="showSection('citizen-portal')">
+                            <button class="quick-action-btn" id="quick-submit-btn" onclick="showSection('citizen-portal')">
                                 <i class="fas fa-plus-circle"></i>
                                 Submit Complaint
                             </button>
-                            <button class="quick-action-btn" onclick="showSection('tracking')">
+                            <button class="quick-action-btn" id="quick-track-btn" onclick="showSection('tracking')">
                                 <i class="fas fa-search"></i>
                                 Track Status
                             </button>
-                            <button class="quick-action-btn" onclick="showSection('public-portal')">
+                            <button class="quick-action-btn" id="quick-public-btn" onclick="showSection('public-portal')">
                                 <i class="fas fa-globe"></i>
                                 View All Issues
                             </button>
-                            <button class="quick-action-btn" onclick="openLoginModal()">
+                            <button class="quick-action-btn" id="quick-login-btn" onclick="openUserTypeModal()">
                                 <i class="fas fa-user-shield"></i>
-                                Department Login
+                                Login Portal
                             </button>
                         </div>
                     </div>
@@ -125,22 +136,22 @@
                         <div class="stat-card">
                             <div class="stat-icon">📊</div>
                             <div class="stat-value" id="home-total">0</div>
-                            <div class="stat-label">Total Complaints</div>
+                            <div class="stat-label" id="home-total-label">Total Complaints</div>
                         </div>
                         <div class="stat-card warning">
                             <div class="stat-icon">⏳</div>
                             <div class="stat-value" id="home-pending">0</div>
-                            <div class="stat-label">Pending</div>
+                            <div class="stat-label" id="home-pending-label">Pending</div>
                         </div>
                         <div class="stat-card success">
                             <div class="stat-icon">✅</div>
                             <div class="stat-value" id="home-resolved">0</div>
-                            <div class="stat-label">Resolved</div>
+                            <div class="stat-label" id="home-resolved-label">Resolved</div>
                         </div>
                         <div class="stat-card danger">
                             <div class="stat-icon">⚠️</div>
                             <div class="stat-value" id="home-delayed">0</div>
-                            <div class="stat-label">Delayed</div>
+                            <div class="stat-label" id="home-delayed-label">Delayed</div>
                         </div>
                     </div>
                 </section>
@@ -149,30 +160,30 @@
                 <section id="citizen-portal" class="section">
                     <div class="card">
                         <div class="card-header">
-                            <h3>📝 Submit New Complaint</h3>
+                            <h3 id="citizen-portal-title">📝 Submit New Complaint</h3>
                         </div>
                         <div class="card-body">
                             <form id="complaint-form">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="form-label">Full Name *</label>
+                                            <label class="form-label" id="label-fullname">Full Name *</label>
                                             <input type="text" class="form-control" id="fullname" required placeholder="Enter your full name">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="form-label">Mobile Number *</label>
+                                            <label class="form-label" id="label-mobile">Mobile Number *</label>
                                             <input type="tel" class="form-control" id="mobile" required placeholder="Enter mobile number">
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label class="form-label">Location *</label>
+                                    <label class="form-label" id="label-location">Location *</label>
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-outline" id="get-location-btn">
-                                            <i class="fas fa-map-marker-alt"></i> Use My Location
+                                            <i class="fas fa-map-marker-alt"></i> <span id="use-location-label">Use My Location</span>
                                         </button>
                                         <input type="text" class="form-control" id="address" required placeholder="Enter address manually">
                                     </div>
@@ -184,26 +195,26 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="form-label">Category *</label>
+                                            <label class="form-label" id="label-category">Category *</label>
                                             <select class="form-control" id="category" required onchange="checkSimilarComplaints()">
-                                                <option value="">Select Category</option>
-                                                <option value="Road">Road</option>
-                                                <option value="Water">Water</option>
-                                                <option value="Electricity">Electricity</option>
-                                                <option value="Sanitation">Sanitation</option>
-                                                <option value="Parks">Parks</option>
-                                                <option value="Traffic">Traffic</option>
-                                                <option value="Noise">Noise</option>
-                                                <option value="Other">Other</option>
+                                                <option value="" id="category-placeholder">Select Category</option>
+                                                <option value="Road" id="category-road">Road</option>
+                                                <option value="Water" id="category-water">Water</option>
+                                                <option value="Electricity" id="category-electricity">Electricity</option>
+                                                <option value="Sanitation" id="category-sanitation">Sanitation</option>
+                                                <option value="Parks" id="category-parks">Parks</option>
+                                                <option value="Traffic" id="category-traffic">Traffic</option>
+                                                <option value="Noise" id="category-noise">Noise</option>
+                                                <option value="Other" id="category-other">Other</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="form-label">Evidence (Optional)</label>
+                                            <label class="form-label" id="label-evidence">Evidence (Optional)</label>
                                             <div class="d-flex gap-1">
                                                 <button type="button" class="btn btn-outline" id="camera-capture-btn">
-                                                    <i class="fas fa-camera"></i> Capture Photo
+                                                    <i class="fas fa-camera"></i> <span id="capture-photo-label">Capture Photo</span>
                                                 </button>
                                                 <input type="file" class="form-control" id="evidence-upload" accept="image/*" style="max-width: 200px;">
                                             </div>
@@ -214,7 +225,7 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label class="form-label">Description *</label>
+                                    <label class="form-label" id="label-description">Description *</label>
                                     <textarea class="form-control" id="description" required placeholder="Describe the issue in detail..."></textarea>
                                 </div>
                                 
@@ -222,7 +233,7 @@
                                 <div id="duplicate-warning" class="alert alert-warning" style="display: none;"></div>
                                 <div id="similar-complaints"></div>
                                 
-                                <button type="submit" class="btn btn-primary btn-lg">
+                                <button type="submit" class="btn btn-primary btn-lg" id="complaint-submit-btn">
                                     <i class="fas fa-paper-plane"></i> Submit Complaint
                                 </button>
                             </form>
@@ -234,11 +245,11 @@
                 <section id="tracking" class="section">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🔍 Track Your Complaint</h3>
+                            <h3 id="tracking-section-title">🔍 Track Your Complaint</h3>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Enter Complaint ID</label>
+                                <label class="form-label" id="tracking-label">Enter Complaint ID</label>
                                 <div class="d-flex gap-1">
                                     <input type="text" class="form-control" id="tracking-id" placeholder="e.g., PSR-XXXXX-001">
                                     <button class="btn btn-primary" id="track-complaint-btn">
@@ -355,11 +366,12 @@
                                     <label>Status:</label>
                                     <select class="form-control" id="filter-status">
                                         <option value="">All</option>
-                                        <option value="Pending">Pending</option>
-                                        <option value="Verified">Verified</option>
-                                        <option value="Work Started">Work Started</option>
-                                        <option value="Resolved">Resolved</option>
-                                        <option value="Delayed">Delayed</option>
+                                        <option value="Assigned">Assigned</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Awaiting Citizen Verification">Awaiting Citizen Verification</option>
+                                        <option value="Reopened">Reopened</option>
+                                        <option value="Escalated">Escalated</option>
+                                        <option value="Closed">Closed</option>
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -401,7 +413,7 @@
                 <section id="map-view" class="section">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🗺️ Complaint Map</h3>
+                            <h3 id="map-section-title">🗺️ Complaint Map</h3>
                         </div>
                         <div class="card-body">
                             <div id="complaint-map"></div>
@@ -413,10 +425,10 @@
                 <section id="public-portal" class="section">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🌍 Public Grievance Portal</h3>
+                            <h3 id="public-portal-title">🌍 Public Grievance Portal</h3>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted">View all civic issues and support them to help prioritize resolution.</p>
+                            <p class="text-muted" id="public-portal-blurb">View all civic issues and support them to help prioritize resolution.</p>
                             <div id="public-complaints" class="public-complaints-grid"></div>
                         </div>
                     </div>
@@ -509,30 +521,114 @@
 
     <!-- ==================== MODALS ==================== -->
     
+    <!-- User Type Selection Modal (Landing page) -->
+    <div id="user-type-modal" class="modal active">
+        <div class="modal-content" style="max-width: 480px; text-align: center;">
+            <div class="modal-header" style="border-bottom: none; justify-content: center;">
+                <h3 id="welcome-modal-title">Welcome to Smart PS-CRM</h3>
+            </div>
+            <div class="modal-body">
+                <p id="welcome-modal-text">Please choose how you want to continue:</p>
+                <div class="d-flex gap-2" style="justify-content:center; flex-wrap:wrap;">
+                    <button class="btn btn-primary" style="min-width: 140px;" id="welcome-citizen-signup" onclick="openSignupModal()">Citizen Sign Up</button>
+                    <button class="btn btn-outline" style="min-width: 140px;" id="welcome-citizen-login" onclick="openLoginModal('citizen')">Citizen Login</button>
+                    <button class="btn btn-secondary" style="min-width: 140px;" id="welcome-department-login" onclick="openLoginModal('department')">Department Login</button>
+                    <button class="btn btn-dark" style="min-width: 140px;" id="welcome-admin-login" onclick="openLoginModal('admin')">Admin Login</button>
+                </div>
+                <div style="margin-top:1rem;">
+                    <a href="#" id="welcome-public-link" onclick="showSection('home'); closeUserTypeModal(); return false;">Continue to public view</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signup-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="signup-modal-title">Citizen Sign Up</h3>
+                <button class="modal-close" onclick="closeModal('signup-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-role-panel citizen">
+                    <div class="auth-role-badge" id="signup-badge">Citizen Access</div>
+                    <h4 id="signup-heading">Create your citizen account</h4>
+                    <p id="signup-description">Sign up once to submit complaints, track progress, and verify completed work.</p>
+                </div>
+                <form id="signup-form">
+                    <div class="form-group">
+                        <label class="form-label" id="signup-name-label">Name</label>
+                        <input type="text" class="form-control" id="signup-name" required placeholder="Enter your name">
+                        <small class="field-error" id="signup-name-error"></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="signup-mobile-label">Mobile</label>
+                        <input type="tel" class="form-control" id="signup-mobile" required placeholder="Enter mobile number">
+                        <small class="field-error" id="signup-mobile-error"></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="signup-username-label">Username</label>
+                        <input type="text" class="form-control" id="signup-username" required placeholder="Choose username">
+                        <small class="field-error" id="signup-username-error"></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="signup-password-label">Password</label>
+                        <input type="password" class="form-control" id="signup-password" required placeholder="Choose password">
+                        <small class="field-error" id="signup-password-error"></small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="signup-submit-btn">Sign Up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Login</h3>
+                <h3 id="login-modal-title">Login</h3>
                 <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <div id="login-role-panel" class="auth-role-panel department">
+                    <div id="login-role-badge" class="auth-role-badge">Department Portal</div>
+                    <h4 id="login-role-heading">Work queue access</h4>
+                    <p id="login-role-description">Sign in with your department credentials to inspect complaints and upload proof.</p>
+                </div>
                 <form id="login-form">
+                    <input type="hidden" id="login-role" value="department">
                     <div class="form-group">
-                        <label class="form-label">Username</label>
+                        <label class="form-label" id="login-username-label">Username</label>
                         <input type="text" class="form-control" id="login-username" required placeholder="Enter username">
+                        <small class="field-error" id="login-username-error"></small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Password</label>
+                        <label class="form-label" id="login-password-label">Password</label>
                         <input type="password" class="form-control" id="login-password" required placeholder="Enter password">
+                        <small class="field-error" id="login-password-error"></small>
                     </div>
-                    <div class="alert alert-info">
-                        <strong>Demo Credentials:</strong><br>
-                        Admin: admin / admin123<br>
-                        Dept: roads / road123<br>
-                        Water: water / water123
+                    <div id="login-credentials-info" class="alert alert-info">
+                        <strong>Department Demo Credentials:</strong><br>
+                        Roads: roads / road123<br>
+                        Water: water / water123<br>
+                        Electricity: electric / electric123<br>
+                        Sanitation: sanitation / sanitation123<br>
+                        <br>
+                        Admin: admin / admin123
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    <div class="text-right auth-link-group" id="login-link-signup" style="margin-bottom:.75rem;">
+                        <a href="#" id="login-link-signup-anchor" onclick="openSignupModal(); return false;">Citizen Sign Up</a>
+                    </div>
+                    <div class="text-right auth-link-group" id="login-link-citizen" style="margin-bottom:.75rem;">
+                        <a href="#" id="login-link-citizen-anchor" onclick="openLoginModal('citizen'); return false;">Citizen Login</a>
+                    </div>
+                    <div class="text-right auth-link-group" id="login-link-department" style="margin-bottom:.75rem;">
+                        <a href="#" id="login-link-department-anchor" onclick="openLoginModal('department'); return false;">Department Login</a>
+                    </div>
+                    <div class="text-right auth-link-group" id="login-link-admin" style="margin-bottom:.75rem;">
+                        <a href="#" id="login-link-admin-anchor" onclick="openLoginModal('admin'); return false;">Admin Login</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">Login</button>
                 </form>
             </div>
         </div>
@@ -584,12 +680,20 @@
                             <div class="form-group">
                                 <label class="form-label">Update Status *</label>
                                 <select class="form-control" id="response-status" required>
-                                    <option value="Verified">Verified</option>
-                                    <option value="Work Started">Work Started</option>
-                                    <option value="Resolved">Resolved</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Awaiting Citizen Verification">Awaiting Citizen Verification</option>
+                                    <option value="Escalated">Escalated</option>
                                 </select>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Completion Proof</label>
+                        <input type="text" class="form-control" id="resolution-proof" placeholder="Optional: paste a hosted image URL for proof">
+                        <input type="file" class="form-control mt-1" id="resolution-proof-upload" accept="image/*" style="margin-top:0.5rem;">
+                        <div id="resolution-proof-preview" class="evidence-preview"></div>
+                        <small class="text-muted">Upload a proof image before requesting citizen verification.</small>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-block">Submit Response</button>
@@ -683,6 +787,10 @@
     <!-- JavaScript Files -->
     <script src="js/blockchain.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/auth-ui.js"></script>
+    <script src="js/public-ui.js"></script>
+    <script src="js/dashboard-ui.js"></script>
+    <script src="js/citizen-ui.js"></script>
     <script src="js/app.js"></script>
     <script src="js/map.js"></script>
     <script src="js/analytics.js"></script>

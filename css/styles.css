@@ -1066,6 +1066,12 @@ select.form-control { cursor: pointer; }
     .page-content {
         padding: 1.5rem;
     }
+    .site-footer {
+        margin: 1.5rem;
+    }
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -1095,6 +1101,13 @@ select.form-control { cursor: pointer; }
     }
     .page-content {
         padding: 1rem;
+    }
+    .site-footer {
+        margin: 1rem;
+        padding: 1.3rem 1rem 1rem;
+    }
+    .footer-grid {
+        grid-template-columns: 1fr;
     }
     .quick-actions {
         grid-template-columns: 1fr;
@@ -1446,5 +1459,92 @@ code {
     color: var(--text-light);
     margin-top: 0.5rem;
     border: 1px solid var(--govt-border);
+}
+
+/* ==================== Footer ==================== */
+.site-footer {
+    margin: 2.25rem 2rem 1.5rem;
+    padding: 1.8rem 1.8rem 1rem;
+    border-radius: var(--border-radius-lg);
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%),
+        linear-gradient(135deg, #102f54 0%, #0d2747 100%);
+    color: rgba(255,255,255,0.9);
+    box-shadow: var(--shadow-lg);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.1fr 1fr;
+    gap: 1.5rem;
+}
+
+.footer-brand h3,
+.footer-column h4 {
+    color: #ffffff;
+    margin-bottom: 0.8rem;
+}
+
+.footer-brand p,
+.footer-column p {
+    color: rgba(255,255,255,0.78);
+    margin-bottom: 0.7rem;
+}
+
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.footer-column a {
+    color: rgba(255,255,255,0.82);
+}
+
+.footer-column a:hover {
+    color: #ffffff;
+}
+
+.footer-contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    color: rgba(255,255,255,0.82);
+}
+
+.footer-contact-item i {
+    width: 16px;
+    color: #f0c88f;
+    margin-top: 0.2rem;
+}
+
+.footer-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.footer-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.08);
+    font-size: 0.8rem;
+    color: #ffffff;
+}
+
+.footer-bottom {
+    margin-top: 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.88rem;
 }
 

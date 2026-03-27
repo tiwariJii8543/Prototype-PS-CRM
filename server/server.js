@@ -13,6 +13,9 @@ const {
   DB_NAME,
   JWT_SECRET,
   UPLOAD_ROOT,
+  FRONTEND_ROOT,
+  FRONTEND_ENTRY,
+  ALLOWED_ORIGINS,
   CATEGORY_DEPARTMENT_MAP,
   DEFAULT_PRIORITY_RULES,
   SLA_RULES,
@@ -56,7 +59,14 @@ const {
 
 const app = express();
 app.use(helmetMiddleware);
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  }
+}));
 app.use(bodyParser.json({ limit: '25mb' }));
 
 if (!fs.existsSync(UPLOAD_ROOT)) {
@@ -64,6 +74,14 @@ if (!fs.existsSync(UPLOAD_ROOT)) {
 }
 
 app.use('/uploads', express.static(UPLOAD_ROOT));
+
+const frontendAssets = ['css', 'js'];
+frontendAssets.forEach(assetDir => {
+  const assetPath = path.join(FRONTEND_ROOT, assetDir);
+  if (fs.existsSync(assetPath)) {
+    app.use(`/${assetDir}`, express.static(assetPath));
+  }
+});
 
 const uploadStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_ROOT),
@@ -1184,8 +1202,39 @@ async function initializeDb() {
     }
   });
 
+  app.get('/api/health', async (req, res) => {
+    try {
+      const [rows] = await pool.query('SELECT 1 AS ok');
+      res.json({
+        ok: true,
+        database: rows?.[0]?.ok === 1 ? 'connected' : 'unknown',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        database: 'disconnected',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  if (fs.existsSync(FRONTEND_ENTRY)) {
+    app.get('/', (req, res) => {
+      res.sendFile(FRONTEND_ENTRY);
+    });
+
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+        return next();
+      }
+      return res.sendFile(FRONTEND_ENTRY);
+    });
+  }
+
   app.listen(PORT, () => {
-    console.log(`PS-CRM backend API listening on http://localhost:${PORT}`);
+    console.log(`PS-CRM backend API listening on port ${PORT}`);
   });
 })().catch(error => {
   console.error('DB initialization failed', error);

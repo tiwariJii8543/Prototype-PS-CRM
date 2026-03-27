@@ -10,11 +10,32 @@ class StorageManager {
         this.usersKey = 'ps_crm_users';
         this.escalationsKey = 'ps_crm_escalations';
 
-        this.apiBase = 'http://localhost:5000/api';
+        this.apiBase = this.resolveApiBase();
         this.apiMode = true; // backend-first mode now works with the upgraded API
         this.jwtToken = null;
 
         this.initializeData();
+    }
+
+    resolveApiBase() {
+        const configuredApiBase = window.PSCRM_CONFIG?.apiBase || window.PSCRM_API_BASE;
+        if (configuredApiBase) {
+            return configuredApiBase.replace(/\/$/, '');
+        }
+
+        const protocol = window.location?.protocol || '';
+        const hostname = window.location?.hostname || '';
+        const origin = window.location?.origin || '';
+
+        if (protocol === 'file:') {
+            return 'http://localhost:5000/api';
+        }
+
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5000/api';
+        }
+
+        return `${origin}/api`;
     }
 
     setApiMode(enabled) {

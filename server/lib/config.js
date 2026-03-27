@@ -4,6 +4,12 @@ const PORT = process.env.PORT || 5000;
 const DB_NAME = process.env.DB_NAME || 'ps_crm_db';
 const JWT_SECRET = process.env.JWT_SECRET || 'ps_crm_dev_secret';
 const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
+const FRONTEND_ROOT = path.join(__dirname, '..', '..');
+const FRONTEND_ENTRY = path.join(FRONTEND_ROOT, 'index.html');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
 const CATEGORY_DEPARTMENT_MAP = {
   Road: 'dept_road',
@@ -35,7 +41,7 @@ const SLA_RULES = {
 };
 
 const ALLOWED_CATEGORIES = Object.keys(CATEGORY_DEPARTMENT_MAP);
-const ALLOWED_LANGUAGES = ['en', 'hi'];
+const ALLOWED_LANGUAGES = ['en', 'hi', 'bn', 'ta', 'te'];
 const ALLOWED_STATUS_UPDATES = ['In Progress', 'Awaiting Citizen Verification', 'Escalated', 'Closed', 'Reopened'];
 
 module.exports = {
@@ -43,6 +49,9 @@ module.exports = {
   DB_NAME,
   JWT_SECRET,
   UPLOAD_ROOT,
+  FRONTEND_ROOT,
+  FRONTEND_ENTRY,
+  ALLOWED_ORIGINS,
   CATEGORY_DEPARTMENT_MAP,
   DEFAULT_PRIORITY_RULES,
   SLA_RULES,

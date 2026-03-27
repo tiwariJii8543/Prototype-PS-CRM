@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { URL } = require('url');
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -102,17 +103,50 @@ const uploadMiddleware = multer({
   }
 });
 
-async function initializeDb() {
-  const conn = await mysql.createConnection({
+function shouldUseSslForDatabase() {
+  return process.env.DB_SSL === 'true' || process.env.DATABASE_SSL === 'true';
+}
+
+function getDatabaseConnectionConfig({ includeDatabase = true } = {}) {
+  if (process.env.DATABASE_URL) {
+    const databaseUrl = new URL(process.env.DATABASE_URL);
+    const databaseName = databaseUrl.pathname.replace(/^\//, '');
+    const config = {
+      host: databaseUrl.hostname,
+      port: Number(databaseUrl.port || 3306),
+      user: decodeURIComponent(databaseUrl.username || ''),
+      password: decodeURIComponent(databaseUrl.password || '')
+    };
+
+    if (includeDatabase && databaseName) {
+      config.database = databaseName;
+    }
+
+    if (shouldUseSslForDatabase()) {
+      config.ssl = { rejectUnauthorized: false };
+    }
+
+    return config;
+  }
+
+  return {
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
+    port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || ''
-  });
+    password: process.env.DB_PASSWORD || '',
+    ...(includeDatabase ? { database: DB_NAME } : {})
+  };
+}
+
+async function initializeDb() {
+  const usingDatabaseUrl = Boolean(process.env.DATABASE_URL);
+  const conn = await mysql.createConnection(getDatabaseConnectionConfig({ includeDatabase: usingDatabaseUrl }));
 
   try {
-    await conn.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    await conn.query(`USE ${DB_NAME}`);
+    if (!usingDatabaseUrl) {
+      await conn.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      await conn.query(`USE ${DB_NAME}`);
+    }
     const ensureColumn = async (table, column, definition) => {
       const [rows] = await conn.query(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
       if (rows.length === 0) {
@@ -383,11 +417,7 @@ async function initializeDb() {
   await initializeDb();
 
   const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: DB_NAME,
+    ...getDatabaseConnectionConfig({ includeDatabase: true }),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0

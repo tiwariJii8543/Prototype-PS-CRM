@@ -33,6 +33,7 @@ npm install
 ### 3. Configure Environment
 Copy `server/.env.example` to `server/.env` and update it:
 ```env
+DATABASE_URL=
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
@@ -42,6 +43,13 @@ JWT_SECRET=your_jwt_secret_here
 PORT=5000
 ALLOWED_ORIGINS=http://localhost:5500
 ```
+
+For Railway or another managed MySQL provider, you can use either:
+
+- `DATABASE_URL` as a full connection string, or
+- the separate `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` variables
+
+If `DATABASE_URL` is provided, the backend will use it automatically.
 
 ### 4. Start Backend
 ```bash
@@ -179,6 +187,7 @@ Use this if you want the frontend on Netlify/Vercel and the backend on Render/Ra
 - Do not commit `server/.env` with real credentials.
 - Rotate any database password or JWT secret that has already been exposed.
 - Use a long random `JWT_SECRET` in production.
+- Prefer `DATABASE_URL` on Railway when it is available.
 
 ## License
 

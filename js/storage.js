@@ -9,6 +9,7 @@ class StorageManager {
         this.departmentsKey = 'ps_crm_departments';
         this.usersKey = 'ps_crm_users';
         this.escalationsKey = 'ps_crm_escalations';
+        this.apiBaseKey = 'pscrm_api_base';
 
         this.apiBase = this.resolveApiBase();
         this.apiMode = true; // backend-first mode now works with the upgraded API
@@ -18,7 +19,16 @@ class StorageManager {
     }
 
     resolveApiBase() {
-        const configuredApiBase = window.PSCRM_CONFIG?.apiBase || window.PSCRM_API_BASE;
+        const urlApiBase = new URLSearchParams(window.location?.search || '').get('apiBase');
+        if (urlApiBase) {
+            const normalizedUrlApiBase = urlApiBase.replace(/\/$/, '');
+            localStorage.setItem(this.apiBaseKey, normalizedUrlApiBase);
+            return normalizedUrlApiBase;
+        }
+
+        const storedApiBase = localStorage.getItem(this.apiBaseKey);
+        const metaConfiguredApiBase = document.querySelector('meta[name="pscrm-api-base"]')?.content;
+        const configuredApiBase = storedApiBase || window.PSCRM_CONFIG?.apiBase || window.PSCRM_API_BASE || metaConfiguredApiBase;
         if (configuredApiBase) {
             return configuredApiBase.replace(/\/$/, '');
         }
@@ -40,6 +50,18 @@ class StorageManager {
 
     setApiMode(enabled) {
         this.apiMode = enabled;
+    }
+
+    setApiBase(apiBase) {
+        const normalizedApiBase = (apiBase || '').trim().replace(/\/$/, '');
+        if (!normalizedApiBase) {
+            localStorage.removeItem(this.apiBaseKey);
+            this.apiBase = this.resolveApiBase();
+            return;
+        }
+
+        localStorage.setItem(this.apiBaseKey, normalizedApiBase);
+        this.apiBase = normalizedApiBase;
     }
 
     getCurrentLanguage() {
@@ -81,6 +103,10 @@ class StorageManager {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
+            const usingSameOriginApi = this.apiBase === `${window.location?.origin || ''}/api`;
+            if (response.status === 405 && usingSameOriginApi) {
+                throw new Error('API request failed (405). The frontend is likely pointing at the wrong host. Set the deployed backend URL in the page config.');
+            }
             throw new Error(error.message || `API request failed (${response.status})`);
         }
 

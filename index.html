@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="pscrm-api-base" content="">
     <title>Smart PS-CRM | Public Service Complaint Management</title>
     
     <!-- External Libraries -->
@@ -13,6 +14,10 @@
     
     <!-- Local CSS -->
     <link rel="stylesheet" href="css/styles.css">
+    <script>
+        // For separate frontend/backend hosting, set this to your deployed backend URL, e.g.
+        // document.querySelector('meta[name="pscrm-api-base"]').setAttribute('content', 'https://your-backend.up.railway.app/api');
+    </script>
 </head>
 <body>
     <div id="toast-container" class="toast-container"></div>

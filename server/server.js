@@ -154,6 +154,11 @@ async function initializeDb() {
       }
     };
 
+    const hasColumn = async (table, column) => {
+      const [rows] = await conn.query(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
+      return rows.length > 0;
+    };
+
     const ensureColumnType = async (table, column, expectedType, definition) => {
       const [rows] = await conn.query(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
       if (rows.length === 0) return;
@@ -309,7 +314,14 @@ async function initializeDb() {
     await ensureColumn('complaints', 'latestProof', 'TEXT');
     await ensureColumn('complaints', 'closedAt', 'DATETIME NULL');
     await ensureColumnType('complaints', 'latestProof', 'longtext', 'LONGTEXT NULL');
-    await conn.query(`UPDATE complaints SET locationAddress = location_address WHERE locationAddress IS NULL AND location_address IS NOT NULL`);
+
+    if (await hasColumn('complaints', 'location_address')) {
+      await conn.query(`
+        UPDATE complaints
+        SET locationAddress = location_address
+        WHERE locationAddress IS NULL AND location_address IS NOT NULL
+      `);
+    }
 
     const [existingComplaints] = await conn.query('SELECT complaintId, proofs, timeline, verification FROM complaints');
     for (const complaint of existingComplaints) {

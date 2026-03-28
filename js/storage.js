@@ -98,7 +98,7 @@ class StorageManager {
                 body: body ? JSON.stringify(body) : null
             });
         } catch (error) {
-            throw new Error('Backend server is not running. Start server/server.js and try again.');
+            throw new Error('Backend API is unavailable right now. Please try again in a moment.');
         }
 
         if (!response.ok) {
@@ -136,7 +136,7 @@ class StorageManager {
                 body: formData
             });
         } catch (error) {
-            throw new Error('Backend server is not running. Start server/server.js and try again.');
+            throw new Error('Backend API is unavailable right now. Please try again in a moment.');
         }
 
         if (!response.ok) {

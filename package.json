@@ -1,0 +1,13 @@
+{
+  "name": "prototype-ps-crm",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Root deployment wrapper for the PS-CRM app",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "npm run dev --prefix server"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

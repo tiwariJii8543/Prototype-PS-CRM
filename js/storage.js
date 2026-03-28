@@ -19,6 +19,18 @@ class StorageManager {
     }
 
     resolveApiBase() {
+        const protocol = window.location?.protocol || '';
+        const hostname = window.location?.hostname || '';
+        const origin = window.location?.origin || '';
+
+        if (protocol === 'file:') {
+            return 'http://localhost:5000/api';
+        }
+
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5000/api';
+        }
+
         const urlApiBase = new URLSearchParams(window.location?.search || '').get('apiBase');
         if (urlApiBase) {
             const normalizedUrlApiBase = urlApiBase.replace(/\/$/, '');
@@ -31,18 +43,6 @@ class StorageManager {
         const configuredApiBase = storedApiBase || window.PSCRM_CONFIG?.apiBase || window.PSCRM_API_BASE || metaConfiguredApiBase;
         if (configuredApiBase) {
             return configuredApiBase.replace(/\/$/, '');
-        }
-
-        const protocol = window.location?.protocol || '';
-        const hostname = window.location?.hostname || '';
-        const origin = window.location?.origin || '';
-
-        if (protocol === 'file:') {
-            return 'http://localhost:5000/api';
-        }
-
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:5000/api';
         }
 
         return `${origin}/api`;

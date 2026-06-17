@@ -5,6 +5,10 @@
 
 const nodemailer = require('nodemailer');
 
+function getComplaintLocation(complaint = {}) {
+  return complaint.locationAddress || complaint.location_address || 'Unknown';
+}
+
 // Configure email service (update with your SMTP settings)
 const emailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -37,7 +41,7 @@ async function notifyComplaintSubmitted(complaint, department) {
       <p><strong>Category:</strong> ${complaint.category}</p>
       <p><strong>Priority:</strong> <span style="color: red; font-weight: bold;">${complaint.priority}</span></p>
       <p><strong>Submitted by:</strong> ${complaint.fullName} (${complaint.mobile})</p>
-      <p><strong>Location:</strong> ${complaint.location_address || 'Unknown'}</p>
+      <p><strong>Location:</strong> ${getComplaintLocation(complaint)}</p>
       <p><strong>Description:</strong></p>
       <p>${complaint.description}</p>
       <p><a href="${process.env.APP_URL || 'http://localhost:3000'}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">View in Dashboard</a></p>
@@ -109,7 +113,7 @@ async function notifyEscalation(complaint, reason, adminEmail) {
       <p><strong>Priority:</strong> <span style="color: red; font-weight: bold;">${complaint.priority}</span></p>
       <p><strong>Submitted by:</strong> ${complaint.fullName}</p>
       <p><strong>Reason:</strong> ${reason}</p>
-      <p><strong>Location:</strong> ${complaint.location_address || 'Unknown'}</p>
+      <p><strong>Location:</strong> ${getComplaintLocation(complaint)}</p>
       <p><a href="${process.env.APP_URL || 'http://localhost:3000'}" style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">View Escalated Complaint</a></p>
       <p style="color: #666; font-size: 12px; margin-top: 20px;">This requires immediate admin attention.</p>
     `;

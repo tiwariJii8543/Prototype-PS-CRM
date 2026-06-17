@@ -189,7 +189,8 @@ async function initializeDb() {
         id VARCHAR(100) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         categories JSON,
-        head VARCHAR(255)
+        head VARCHAR(255),
+        head_email VARCHAR(255)
       ) ENGINE=InnoDB;
     `);
 
@@ -299,6 +300,7 @@ async function initializeDb() {
     `);
 
     await ensureColumn('users', 'preferredLanguage', `VARCHAR(20) DEFAULT 'en'`);
+    await ensureColumn('departments', 'head_email', 'VARCHAR(255)');
     await ensureColumn('complaints', 'citizenUserId', 'VARCHAR(100)');
     await ensureColumn('complaints', 'title', 'VARCHAR(255)');
     await ensureColumn('complaints', 'aiCategory', 'VARCHAR(100)');
@@ -515,7 +517,7 @@ async function initializeDb() {
       description: row.description,
       assignedDepartment: row.assignedDepartment,
       location: {
-        address: row.location_address || '',
+        address: row.locationAddress || row.location_address || '',
         lat: row.latitude || 0,
         lng: row.longitude || 0
       },
@@ -623,6 +625,18 @@ async function initializeDb() {
       }
       next();
     };
+  }
+
+  function canAccessComplaint(user, complaint) {
+    if (!user || !complaint) return false;
+    if (user.role === 'admin') return true;
+    if (user.role === 'department') {
+      return complaint.assignedDepartment === user.department;
+    }
+    if (user.role === 'citizen') {
+      return String(complaint.citizenUserId || '') === String(user.id);
+    }
+    return false;
   }
 
   app.post('/api/uploads', authGuard, complaintWriteRateLimiter, (req, res) => {
@@ -768,7 +782,7 @@ async function initializeDb() {
     }
   });
 
-  app.post('/api/complaints', authGuard, complaintWriteRateLimiter, async (req, res) => {
+  app.post('/api/complaints', authGuard, requireRoles('citizen'), complaintWriteRateLimiter, async (req, res) => {
     try {
       const { complaintId, fullName, mobile, category, description, location, evidence } = req.body;
       if (!isNonEmptyString(complaintId, 6, 100)) {
@@ -900,6 +914,9 @@ async function initializeDb() {
     try {
       const complaint = await getComplaintByComplaintId(req.params.complaintId);
       if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+      if (!canAccessComplaint(req.user, complaint)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
       res.json(complaint);
     } catch (error) {
       console.error(error);
@@ -1018,6 +1035,9 @@ async function initializeDb() {
     try {
       const complaint = await getComplaintByComplaintId(req.params.complaintId);
       if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+      if (!canAccessComplaint(req.user, complaint)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
       const { decision, remarks } = req.body;
       if (!['accepted', 'rejected'].includes(decision)) return res.status(400).json({ message: 'Invalid verification decision' });
       if (remarks && !isNonEmptyString(remarks, 3, 1000)) {
@@ -1082,7 +1102,13 @@ async function initializeDb() {
 
   app.get('/api/departments', authGuard, async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM departments ORDER BY name ASC');
-    res.json(rows.map(row => ({ id: row.id, name: row.name, categories: parseJsonSafe(row.categories, []), head: row.head })));
+    res.json(rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      categories: parseJsonSafe(row.categories, []),
+      head: row.head,
+      headEmail: row.head_email || null
+    })));
   });
 
   app.get('/api/audit/:complaintId', authGuard, async (req, res) => {

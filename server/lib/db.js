@@ -1,18 +1,18 @@
-const mysql = require("mysql2");
+const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
-  host: process.env.MYSQL_PROXY_HOST || "crossover.proxy.rlwy.net",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "Harsh@7983",
-  database: process.env.DB_NAME || "railway",
-  port: process.env.MYSQL_PROXY_PORT || 42756
+  host: process.env.MYSQL_PROXY_HOST || process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'ps_crm_db',
+  port: Number(process.env.MYSQL_PROXY_PORT || process.env.DB_PORT || 3306)
 });
 
-connection.connect((err) => {
+connection.connect(err => {
   if (err) {
-    console.error("❌ DB Connection Failed:", err);
+    console.error('DB connection failed:', err.message);
   } else {
-    console.log("✅ Connected to Railway MySQL");
+    console.log('Connected to MySQL');
   }
 });
 

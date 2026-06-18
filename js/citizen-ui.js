@@ -239,7 +239,10 @@
     }
 
     async function handleComplaintSubmit(e) {
-        e.preventDefault();
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         const {
             getStorage,
             getCurrentUser,
@@ -256,16 +259,33 @@
         const storage = getStorage();
         const currentUser = getCurrentUser();
 
+        // Require an authenticated citizen (with JWT) when running in API mode
         if (!currentUser || currentUser.role !== 'citizen') {
             showToast(t('complaintLoginRequired'), 'warning');
             openSignupModal();
             return;
+        }
+        if (storage.apiMode) {
+            storage.loadToken();
+            if (!storage.jwtToken) {
+                showToast('Please log in to submit a complaint', 'warning');
+                openLoginModal('citizen');
+                return;
+            }
         }
 
         const form = e.target;
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = `<span class="spinner"></span> ${t('complaintSubmitting')}`;
+
+        console.log('Complaint submit started', {
+            apiMode: storage.apiMode,
+            currentUser,
+            hasJwt: Boolean(storage.jwtToken || storage.loadToken()),
+            evidenceValue: document.getElementById('captured-image').value ? 'camera-data' : 'none',
+            hasPendingEvidenceFile: Boolean(getPendingEvidenceFile())
+        });
 
         try {
             const fullName = document.getElementById('fullname').value;
@@ -279,12 +299,20 @@
             let evidence = document.getElementById('captured-image').value;
             if (storage.apiMode) {
                 if (getPendingEvidenceFile()) {
-                    const uploadedEvidence = await storage.uploadFileAsync(getPendingEvidenceFile());
-                    evidence = uploadedEvidence.url;
+                    try {
+                        const uploadedEvidence = await storage.uploadFileAsync(getPendingEvidenceFile());
+                        evidence = uploadedEvidence.url;
+                    } catch (uploadErr) {
+                        throw new Error(`Evidence upload failed: ${uploadErr.message || 'Unknown upload error'}`);
+                    }
                 } else if (evidence.startsWith('data:image')) {
-                    const cameraFile = await dataUrlToFile(evidence, `camera-capture-${Date.now()}.jpg`);
-                    const uploadedEvidence = await storage.uploadFileAsync(cameraFile);
-                    evidence = uploadedEvidence.url;
+                    try {
+                        const cameraFile = await dataUrlToFile(evidence, `camera-capture-${Date.now()}.jpg`);
+                        const uploadedEvidence = await storage.uploadFileAsync(cameraFile);
+                        evidence = uploadedEvidence.url;
+                    } catch (uploadErr) {
+                        throw new Error(`Evidence upload failed: ${uploadErr.message || 'Unknown upload error'}`);
+                    }
                 }
             }
 
@@ -304,19 +332,23 @@
                 submittedBy: currentUser.id || 'citizen'
             };
 
-            await storage.saveComplaintAsync(complaint);
-            await recordBlockchainEvent(complaint.complaintId, 'COMPLAINT_SUBMITTED', {
-                category,
-                priority,
-                department
-            });
-            showToast(t('complaintSubmitted', { id: complaint.complaintId }), 'success');
+            const savedComplaint = await storage.saveComplaintAsync(complaint);
+            try {
+                await recordBlockchainEvent(savedComplaint.complaintId, 'COMPLAINT_SUBMITTED', {
+                    category,
+                    priority,
+                    department
+                });
+            } catch (blockchainError) {
+                console.warn('Complaint saved, but blockchain logging failed:', blockchainError);
+            }
+            showToast(t('complaintSubmitted', { id: savedComplaint.complaintId }), 'success');
             resetComplaintForm();
-            document.getElementById('tracking-id').value = complaint.complaintId;
-            trackComplaint();
+            document.getElementById('tracking-id').value = savedComplaint.complaintId;
         } catch (error) {
             console.error('Error submitting complaint:', error);
-            showToast(t('complaintSubmitError'), 'error');
+            const message = error?.message || 'Unknown complaint submission error';
+            showToast(`Complaint submission failed: ${message}`, 'error');
         }
 
         submitBtn.disabled = false;

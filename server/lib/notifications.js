@@ -4,30 +4,92 @@
  */
 
 const nodemailer = require('nodemailer');
+const emailNotificationsEnabled = process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true';
+const useEthereal = process.env.USE_ETHEREAL === 'true';
+let emailReady = false;
+let etherealAccount = null;
 
 function getComplaintLocation(complaint = {}) {
   return complaint.locationAddress || complaint.location_address || 'Unknown';
 }
 
-// Configure email service (update with your SMTP settings)
-const emailTransporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER || 'noreply@pscrm.local',
-    pass: process.env.SMTP_PASS || 'your-password'
-  }
-});
+let emailTransporter = null;
 
-// Test email connection on startup
-emailTransporter.verify((err, success) => {
-  if (err) {
-    console.warn('Email service not configured or unreachable. Email notifications disabled.');
-  } else {
-    console.log('Email service ready for notifications');
+async function initEmailTransporter() {
+  console.log('Initializing email transporter: ENABLE_EMAIL_NOTIFICATIONS=', process.env.ENABLE_EMAIL_NOTIFICATIONS, 'USE_ETHEREAL=', process.env.USE_ETHEREAL);
+  if (!emailNotificationsEnabled) {
+    console.log('Email notifications are disabled via environment. Skipping transporter init.');
+    return;
   }
-});
+
+  try {
+    if (useEthereal) {
+      etherealAccount = await nodemailer.createTestAccount();
+      emailTransporter = nodemailer.createTransport({
+        host: etherealAccount.smtp.host,
+        port: etherealAccount.smtp.port,
+        secure: etherealAccount.smtp.secure,
+        auth: {
+          user: etherealAccount.user,
+          pass: etherealAccount.pass
+        }
+      });
+      await emailTransporter.verify();
+      emailReady = true;
+      console.log('Ethereal email account created for testing. Preview at nodemailer.getTestMessageUrl(info)');
+      return;
+    }
+
+    emailTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || 'noreply@pscrm.local',
+        pass: process.env.SMTP_PASS || 'your-password'
+      }
+    });
+
+    await emailTransporter.verify();
+    emailReady = true;
+    console.log('Email service ready for notifications');
+  } catch (err) {
+    emailReady = false;
+    console.warn('Email service not configured or unreachable. Email notifications disabled.', err.message);
+  }
+}
+
+// Automatically initialize when module is first required, but also export the initializer
+initEmailTransporter().catch(err => console.warn('Failed to init email transporter', err));
+
+async function sendOtpEmail(email, otpCode, purpose = 'signup verification') {
+  if (!emailNotificationsEnabled) {
+    throw new Error('Email notifications are disabled. Set ENABLE_EMAIL_NOTIFICATIONS=true to use OTP.');
+  }
+  if (!emailReady || !emailTransporter) {
+    throw new Error('Email service is not ready. Check SMTP settings and try again.');
+  }
+
+  const info = await emailTransporter.sendMail({
+    from: (useEthereal ? etherealAccount.user : process.env.SMTP_USER) || 'noreply@pscrm.local',
+    to: email,
+    subject: `[PS-CRM] Your OTP for ${purpose}`,
+    html: `
+      <h2>PS-CRM OTP Verification</h2>
+      <p>Your one-time password for ${purpose} is:</p>
+      <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">${otpCode}</p>
+      <p>This OTP will expire in 10 minutes.</p>
+      <p>If you did not request this, you can ignore this email.</p>
+    `
+  });
+
+  const result = { info };
+  if (useEthereal) {
+    result.testUrl = nodemailer.getTestMessageUrl(info);
+    console.log('Ethereal preview URL:', result.testUrl);
+  }
+  return result;
+}
 
 /**
  * Send complaint submitted notification to department
@@ -202,5 +264,6 @@ module.exports = {
   notifyComplaintStatusChanged,
   notifyEscalation,
   notifyDeadlineApproaching,
-  notifyDepartmentResponse
+  notifyDepartmentResponse,
+  sendOtpEmail
 };

@@ -750,6 +750,55 @@ select.form-control { cursor: pointer; }
     font-size: 0.95rem;
 }
 
+.captcha-group {
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--govt-border);
+    border-radius: var(--border-radius);
+    background: linear-gradient(180deg, #f9fbfe, #f3f7fb);
+}
+
+.captcha-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.captcha-prompt {
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    background: white;
+    border: 1px dashed #aab9cb;
+    color: var(--primary-dark);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    min-width: 180px;
+    text-align: center;
+}
+
+.otp-email-display,
+.otp-dev-note {
+    padding: 0.8rem 0.95rem;
+    border-radius: 12px;
+}
+
+.otp-email-display {
+    background: linear-gradient(180deg, #f9fbfd, #f2f6fa);
+    border: 1px solid var(--govt-border);
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+.otp-dev-note {
+    margin-bottom: 1rem;
+    background: rgba(28, 90, 156, 0.08);
+    border: 1px solid rgba(28, 90, 156, 0.18);
+    color: var(--info-color);
+    font-size: 0.88rem;
+}
+
 .modal-footer {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--border-color);

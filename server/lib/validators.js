@@ -10,6 +10,10 @@ function isValidUsername(value) {
   return /^[a-zA-Z0-9_]{4,30}$/.test(String(value || '').trim());
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
 function isSafeUrl(value) {
   return typeof value === 'string' && /^https?:\/\/.+/i.test(value.trim());
 }
@@ -26,6 +30,7 @@ module.exports = {
   isNonEmptyString,
   isValidMobile,
   isValidUsername,
+  isValidEmail,
   isSafeUrl,
   isValidCoordinate,
   rejectValidation

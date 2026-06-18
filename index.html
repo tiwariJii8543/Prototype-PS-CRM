@@ -627,6 +627,11 @@
                         <small class="field-error" id="signup-mobile-error"></small>
                     </div>
                     <div class="form-group">
+                        <label class="form-label" id="signup-email-label">Email</label>
+                        <input type="email" class="form-control" id="signup-email" required placeholder="Enter your email address">
+                        <small class="field-error" id="signup-email-error"></small>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" id="signup-username-label">Username</label>
                         <input type="text" class="form-control" id="signup-username" required placeholder="Choose username">
                         <small class="field-error" id="signup-username-error"></small>
@@ -636,7 +641,45 @@
                         <input type="password" class="form-control" id="signup-password" required placeholder="Choose password">
                         <small class="field-error" id="signup-password-error"></small>
                     </div>
+                    <div class="form-group captcha-group">
+                        <label class="form-label" id="signup-captcha-label">Captcha</label>
+                        <div class="captcha-box">
+                            <div class="captcha-prompt" id="signup-captcha-prompt">Solve: ...</div>
+                            <button type="button" class="btn btn-outline btn-sm" id="signup-captcha-refresh" onclick="window.PSCRMAuth.loadCaptcha('signup')">Refresh Captcha</button>
+                        </div>
+                        <input type="hidden" id="signup-captcha-token">
+                        <input type="text" class="form-control" id="signup-captcha-answer" required placeholder="Enter captcha answer">
+                        <small class="field-error" id="signup-captcha-answer-error"></small>
+                    </div>
                     <button type="submit" class="btn btn-primary btn-block" id="signup-submit-btn">Sign Up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="signup-otp-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="signup-otp-modal-title">Verify Email OTP</h3>
+                <button class="modal-close" onclick="closeModal('signup-otp-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="signup-otp-description">Enter the OTP sent to your email address to finish account creation.</p>
+                
+                <form id="signup-otp-form">
+                    <div class="form-group">
+                        <label class="form-label" id="signup-otp-email-label">OTP sent to</label>
+                        <div class="otp-email-display" id="signup-otp-email"></div>
+                        <input type="hidden" id="signup-otp-email-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="signup-otp-input-label">OTP</label>
+                        <input type="text" class="form-control" id="signup-otp-input" required placeholder="Enter 6-digit OTP">
+                        <small class="field-error" id="signup-otp-input-error"></small>
+                    </div>
+                    <div class="otp-dev-note d-none" id="signup-otp-dev-note"></div>
+                    <button type="submit" class="btn btn-primary btn-block" id="signup-otp-submit-btn">Verify OTP</button>
+                    <button type="button" class="btn btn-outline btn-block mt-2" id="signup-otp-resend-btn" onclick="window.PSCRMAuth.resendSignupOtp()">Resend OTP</button>
                 </form>
             </div>
         </div>
@@ -675,6 +718,16 @@
                         Sanitation: sanitation / sanitation123<br>
                         <br>
                         Admin: admin / admin123
+                    </div>
+                    <div class="form-group captcha-group">
+                        <label class="form-label" id="login-captcha-label">Captcha</label>
+                        <div class="captcha-box">
+                            <div class="captcha-prompt" id="login-captcha-prompt">Solve: ...</div>
+                            <button type="button" class="btn btn-outline btn-sm" id="login-captcha-refresh" onclick="window.PSCRMAuth.loadCaptcha('login')">Refresh Captcha</button>
+                        </div>
+                        <input type="hidden" id="login-captcha-token">
+                        <input type="text" class="form-control" id="login-captcha-answer" required placeholder="Enter captcha answer">
+                        <small class="field-error" id="login-captcha-answer-error"></small>
                     </div>
                     <div class="text-right auth-link-group" id="login-link-signup" style="margin-bottom:.75rem;">
                         <a href="#" id="login-link-signup-anchor" onclick="openSignupModal(); return false;">Citizen Sign Up</a>

@@ -1,5 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
@@ -34,6 +35,7 @@ const {
   isNonEmptyString,
   isValidMobile,
   isValidUsername,
+  isValidEmail,
   isSafeUrl,
   isValidCoordinate,
   rejectValidation
@@ -55,10 +57,13 @@ const {
   notifyComplaintStatusChanged,
   notifyEscalation,
   notifyDeadlineApproaching,
-  notifyDepartmentResponse
+  notifyDepartmentResponse,
+  sendOtpEmail
 } = require('./lib/notifications');
 
 const app = express();
+const captchaChallenges = new Map();
+const pendingSignupOtps = new Map();
 app.set('trust proxy', 1);
 app.use(helmetMiddleware);
 app.use(cors({
@@ -103,6 +108,78 @@ const uploadMiddleware = multer({
     cb(null, true);
   }
 });
+
+function createCaptchaChallenge() {
+  const left = Math.floor(Math.random() * 9) + 1;
+  const right = Math.floor(Math.random() * 9) + 1;
+  const operator = Math.random() > 0.5 ? '+' : '-';
+  const prompt = operator === '+' ? `${left} + ${right}` : `${left + right} - ${right}`;
+  const answer = operator === '+' ? left + right : left;
+  const token = crypto.randomBytes(18).toString('hex');
+  captchaChallenges.set(token, {
+    answer: String(answer),
+    expiresAt: Date.now() + 5 * 60 * 1000
+  });
+  return { token, prompt };
+}
+
+function createOtpCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function maskEmail(email = '') {
+  const [localPart = '', domain = ''] = String(email).split('@');
+  if (!localPart || !domain) return email;
+  const visibleLocal = localPart.length <= 2 ? `${localPart[0] || ''}*` : `${localPart.slice(0, 2)}***`;
+  return `${visibleLocal}@${domain}`;
+}
+
+function buildPendingSignupKey(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function createPendingSignupRecord(payload) {
+  return {
+    ...payload,
+    otpCode: createOtpCode(),
+    expiresAt: Date.now() + 10 * 60 * 1000
+  };
+}
+
+function getPendingSignup(identifier) {
+  return pendingSignupOtps.get(buildPendingSignupKey(identifier));
+}
+
+function setPendingSignup(identifier, record) {
+  pendingSignupOtps.set(buildPendingSignupKey(identifier), record);
+}
+
+function deletePendingSignup(identifier) {
+  pendingSignupOtps.delete(buildPendingSignupKey(identifier));
+}
+
+function verifyCaptchaChallenge(token, answer) {
+  if (!token) return false;
+  const challenge = captchaChallenges.get(token);
+  captchaChallenges.delete(token);
+  if (!challenge) return false;
+  if (challenge.expiresAt < Date.now()) return false;
+  return challenge.answer === String(answer || '').trim();
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, challenge] of captchaChallenges.entries()) {
+    if (challenge.expiresAt < now) {
+      captchaChallenges.delete(token);
+    }
+  }
+  for (const [identifier, record] of pendingSignupOtps.entries()) {
+    if (record.expiresAt < now) {
+      pendingSignupOtps.delete(identifier);
+    }
+  }
+}, 60 * 1000).unref();
 
 function shouldUseSslForDatabase() {
   return process.env.DB_SSL === 'true' || process.env.DATABASE_SSL === 'true';
@@ -170,6 +247,23 @@ async function initializeDb() {
       }
     };
 
+    const ensureUniqueIndex = async (table, indexName, column) => {
+      const [indexes] = await conn.query(`SHOW INDEX FROM ${table} WHERE Key_name = ?`, [indexName]);
+      if (indexes.length > 0) return;
+      const [duplicates] = await conn.query(
+        `SELECT ${column}, COUNT(*) AS duplicateCount
+         FROM ${table}
+         WHERE ${column} IS NOT NULL AND ${column} <> ''
+         GROUP BY ${column}
+         HAVING COUNT(*) > 1
+         LIMIT 1`
+      );
+      if (duplicates.length > 0) {
+        throw new Error(`Cannot create unique index ${indexName} because duplicate ${column} values already exist.`);
+      }
+      await conn.query(`ALTER TABLE ${table} ADD UNIQUE INDEX ${indexName} (${column})`);
+    };
+
     await conn.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -179,6 +273,7 @@ async function initializeDb() {
         role ENUM('admin','department','citizen') NOT NULL,
         department VARCHAR(100),
         mobile VARCHAR(50),
+        email VARCHAR(255),
         preferredLanguage VARCHAR(20) DEFAULT 'en',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
@@ -242,6 +337,19 @@ async function initializeDb() {
     `);
 
     await conn.query(`
+      CREATE TABLE IF NOT EXISTS audit_retry (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        complaintId VARCHAR(100) DEFAULT NULL,
+        actor JSON,
+        action VARCHAR(100),
+        payload JSON,
+        attempts INT DEFAULT 0,
+        lastError LONGTEXT,
+        createdAt DATETIME NOT NULL
+      ) ENGINE=InnoDB;
+    `);
+
+    await conn.query(`
       CREATE TABLE IF NOT EXISTS complaint_proofs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         complaintId VARCHAR(100) NOT NULL,
@@ -300,6 +408,8 @@ async function initializeDb() {
     `);
 
     await ensureColumn('users', 'preferredLanguage', `VARCHAR(20) DEFAULT 'en'`);
+    await ensureColumn('users', 'email', 'VARCHAR(255)');
+    await ensureUniqueIndex('users', 'uniq_users_email', 'email');
     await ensureColumn('departments', 'head_email', 'VARCHAR(255)');
     await ensureColumn('complaints', 'citizenUserId', 'VARCHAR(100)');
     await ensureColumn('complaints', 'title', 'VARCHAR(255)');
@@ -596,14 +706,47 @@ async function initializeDb() {
   }
 
   async function appendAudit(complaintId, actor, action, payload) {
-    const [rows] = await pool.query('SELECT currentHash FROM audit_chain WHERE complaintId = ? ORDER BY id DESC LIMIT 1', [complaintId]);
-    const previousHash = rows[0]?.currentHash || 'GENESIS';
-    const currentHash = createAuditHash({ complaintId, actor, action, payload, previousHash, timestamp: new Date().toISOString() });
-    await pool.query(
-      'INSERT INTO audit_chain (complaintId, actor, action, payload, previousHash, currentHash, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [complaintId, JSON.stringify(actor || {}), action, JSON.stringify(payload || {}), previousHash, currentHash, toMysqlDateTime(new Date())]
-    );
+    try {
+      const [rows] = await pool.query('SELECT currentHash FROM audit_chain WHERE complaintId = ? ORDER BY id DESC LIMIT 1', [complaintId]);
+      const previousHash = rows[0]?.currentHash || 'GENESIS';
+      const currentHash = createAuditHash({ complaintId, actor, action, payload, previousHash, timestamp: new Date().toISOString() });
+      await pool.query(
+        'INSERT INTO audit_chain (complaintId, actor, action, payload, previousHash, currentHash, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [complaintId, JSON.stringify(actor || {}), action, JSON.stringify(payload || {}), previousHash, currentHash, toMysqlDateTime(new Date())]
+      );
+    } catch (err) {
+      console.error('appendAudit failed, queuing for retry:', err && err.message ? err.message : err);
+      try {
+        await pool.query(
+          'INSERT INTO audit_retry (complaintId, actor, action, payload, attempts, lastError, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [complaintId || null, JSON.stringify(actor || {}), action || null, JSON.stringify(payload || {}), 0, String(err && err.message ? err.message : err), toMysqlDateTime(new Date())]
+        );
+      } catch (queueErr) {
+        console.error('Failed to queue audit retry:', queueErr && queueErr.message ? queueErr.message : queueErr);
+      }
+    }
   }
+
+  // Background worker to retry failed audit inserts
+  setInterval(async () => {
+    try {
+      const [rows] = await pool.query('SELECT * FROM audit_retry ORDER BY id ASC LIMIT 20');
+      for (const row of rows) {
+        try {
+          const previous = await pool.query('SELECT currentHash FROM audit_chain WHERE complaintId = ? ORDER BY id DESC LIMIT 1', [row.complaintId]);
+          const previousHash = previous[0][0]?.currentHash || 'GENESIS';
+          const currentHash = createAuditHash({ complaintId: row.complaintId, actor: parseJsonSafe(row.actor, {}), action: row.action, payload: parseJsonSafe(row.payload, {}), previousHash, timestamp: new Date().toISOString() });
+          await pool.query('INSERT INTO audit_chain (complaintId, actor, action, payload, previousHash, currentHash, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)', [row.complaintId, row.actor || '{}', row.action, row.payload || '{}', previousHash, currentHash, toMysqlDateTime(new Date())]);
+          await pool.query('DELETE FROM audit_retry WHERE id = ?', [row.id]);
+        } catch (retryErr) {
+          const attempts = (row.attempts || 0) + 1;
+          await pool.query('UPDATE audit_retry SET attempts = ?, lastError = ? WHERE id = ?', [attempts, String(retryErr && retryErr.message ? retryErr.message : retryErr), row.id]);
+        }
+      }
+    } catch (workerErr) {
+      console.error('Audit retry worker failed:', workerErr && workerErr.message ? workerErr.message : workerErr);
+    }
+  }, 15000).unref();
 
   function authGuard(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -658,9 +801,17 @@ async function initializeDb() {
     });
   });
 
+  app.get('/api/auth/captcha', authRateLimiter, (req, res) => {
+    const challenge = createCaptchaChallenge();
+    res.json(challenge);
+  });
+
   app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, captchaToken, captchaAnswer } = req.body;
+      if (!verifyCaptchaChallenge(captchaToken, captchaAnswer)) {
+        return res.status(400).json({ message: 'Captcha verification failed' });
+      }
       if (!isValidUsername(username) || !isNonEmptyString(password, 6, 100)) {
         return rejectValidation(res, 'Enter a valid username and password');
       }
@@ -676,6 +827,7 @@ async function initializeDb() {
         role: user.role,
         department: user.department,
         mobile: user.mobile,
+        email: user.email || null,
         preferredLanguage: user.preferredLanguage || 'en'
       };
       const token = jwt.sign(normalizedUser, JWT_SECRET, { expiresIn: '8h' });
@@ -688,12 +840,18 @@ async function initializeDb() {
 
   app.post('/api/auth/signup', authRateLimiter, async (req, res) => {
     try {
-      const { name, mobile, username, password, preferredLanguage } = req.body;
+      const { name, mobile, email, username, password, preferredLanguage, captchaToken, captchaAnswer } = req.body;
+      if (!verifyCaptchaChallenge(captchaToken, captchaAnswer)) {
+        return res.status(400).json({ message: 'Captcha verification failed' });
+      }
       if (!isNonEmptyString(name, 2, 100)) {
         return rejectValidation(res, 'Enter a valid name');
       }
       if (!isValidMobile(mobile)) {
         return rejectValidation(res, 'Enter a valid 10-digit mobile number');
+      }
+      if (!isValidEmail(email)) {
+        return rejectValidation(res, 'Enter a valid email address');
       }
       if (!isValidUsername(username)) {
         return rejectValidation(res, 'Username must be 4-30 characters and use only letters, numbers, and underscores');
@@ -704,21 +862,108 @@ async function initializeDb() {
       if (preferredLanguage && !ALLOWED_LANGUAGES.includes(preferredLanguage)) {
         return rejectValidation(res, 'Unsupported language');
       }
-      const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
-      if (existing.length > 0) return res.status(400).json({ message: 'Username exists' });
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const [existing] = await pool.query('SELECT id FROM users WHERE username = ? OR email = ?', [username, normalizedEmail]);
+      if (existing.length > 0) return res.status(400).json({ message: 'Username or email already exists' });
+      if (getPendingSignup(username) || getPendingSignup(normalizedEmail)) {
+        return res.status(400).json({ message: 'An OTP is already pending for this username or email' });
+      }
       const passwordHash = await bcrypt.hash(password, 10);
+      const record = createPendingSignupRecord({
+        name,
+        mobile,
+        email: normalizedEmail,
+        username,
+        passwordHash,
+        preferredLanguage: preferredLanguage || 'en'
+      });
+      setPendingSignup(username, record);
+      setPendingSignup(normalizedEmail, record);
+      await sendOtpEmail(normalizedEmail, record.otpCode, 'account signup');
+      res.status(202).json({
+        requiresOtp: true,
+        email: normalizedEmail,
+        maskedEmail: maskEmail(normalizedEmail),
+        message: 'OTP sent to your email address'
+      });
+    } catch (error) {
+      console.error(error);
+      if (req.body?.username) deletePendingSignup(req.body.username);
+      if (req.body?.email) deletePendingSignup(req.body.email);
+      res.status(500).json({ message: error.message || 'Server error' });
+    }
+  });
+
+  app.post('/api/auth/signup/verify-otp', authRateLimiter, async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      const record = getPendingSignup(email);
+      if (!record) {
+        return res.status(400).json({ message: 'No pending OTP found for this email' });
+      }
+      if (record.expiresAt < Date.now()) {
+        deletePendingSignup(record.email);
+        deletePendingSignup(record.username);
+        return res.status(400).json({ message: 'OTP has expired. Please sign up again.' });
+      }
+      if (String(record.otpCode) !== String(otp || '').trim()) {
+        return res.status(400).json({ message: 'Invalid OTP' });
+      }
+
+      const [existing] = await pool.query('SELECT id FROM users WHERE username = ? OR email = ?', [record.username, record.email]);
+      if (existing.length > 0) {
+        deletePendingSignup(record.email);
+        deletePendingSignup(record.username);
+        return res.status(400).json({ message: 'Username or email already exists' });
+      }
+
       const [result] = await pool.query(
-        'INSERT INTO users (username, password, name, role, mobile, preferredLanguage) VALUES (?, ?, ?, ?, ?, ?)',
-        [username, passwordHash, name, 'citizen', mobile, preferredLanguage || 'en']
+        'INSERT INTO users (username, password, name, role, mobile, email, preferredLanguage) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [record.username, record.passwordHash, record.name, 'citizen', record.mobile, record.email, record.preferredLanguage]
       );
-      const user = { id: result.insertId, username, name, role: 'citizen', mobile, preferredLanguage: preferredLanguage || 'en' };
+      deletePendingSignup(record.email);
+      deletePendingSignup(record.username);
+      const user = {
+        id: result.insertId,
+        username: record.username,
+        name: record.name,
+        role: 'citizen',
+        mobile: record.mobile,
+        email: record.email,
+        preferredLanguage: record.preferredLanguage
+      };
       const token = jwt.sign(user, JWT_SECRET, { expiresIn: '8h' });
       res.status(201).json({ token, user });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ message: error.message || 'Server error' });
     }
   });
+
+  app.post('/api/auth/signup/resend-otp', authRateLimiter, async (req, res) => {
+    try {
+      const { email } = req.body;
+      const record = getPendingSignup(email);
+      if (!record) {
+        return res.status(400).json({ message: 'No pending OTP found for this email' });
+      }
+      const refreshed = createPendingSignupRecord({
+        ...record,
+        email: record.email,
+        username: record.username,
+        passwordHash: record.passwordHash
+      });
+      setPendingSignup(record.username, refreshed);
+      setPendingSignup(record.email, refreshed);
+      await sendOtpEmail(record.email, refreshed.otpCode, 'account signup');
+      res.json({ ok: true, maskedEmail: maskEmail(record.email), message: 'OTP resent successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message || 'Server error' });
+    }
+  });
+
+  
 
   app.get('/api/auth/me', authGuard, (req, res) => {
     res.json({ user: req.user });
@@ -883,7 +1128,12 @@ async function initializeDb() {
         await insertComplaintUpdate(complaintId, entry);
       }
 
-      await appendAudit(complaintId, req.user, 'COMPLAINT_SUBMITTED', { category, priority, assignedDepartment });
+      try {
+        await appendAudit(complaintId, req.user, 'COMPLAINT_SUBMITTED', { category, priority, assignedDepartment });
+      } catch (auditErr) {
+        console.error('Failed to append audit record for complaint:', complaintId, auditErr);
+        // Non-fatal: continue and return created complaint to the client.
+      }
       res.status(201).json(await getComplaintByComplaintId(complaintId));
     } catch (error) {
       console.error(error);

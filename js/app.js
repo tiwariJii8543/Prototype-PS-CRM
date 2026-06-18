@@ -120,13 +120,19 @@ Object.assign(translations.en, {
     signupDescription: 'Sign up once to submit complaints, track progress, and verify completed work.',
     nameLabel: 'Name',
     mobileShortLabel: 'Mobile',
+    emailLabel: 'Email',
     usernameLabel: 'Username',
     passwordLabel: 'Password',
     signupNamePlaceholder: 'Enter your name',
     signupMobilePlaceholder: 'Enter mobile number',
+    signupEmailPlaceholder: 'Enter your email address',
     signupUsernamePlaceholder: 'Choose username',
     signupPasswordPlaceholder: 'Choose password',
     signupSubmit: 'Sign Up',
+    signupOtpTitle: 'Verify Email OTP',
+    signupOtpDescription: 'Enter the OTP sent to your email address to finish account creation.',
+    signupOtpEmailLabel: 'OTP sent to',
+    signupOtpInputLabel: 'OTP',
     authCitizenTitle: 'Citizen Login',
     authCitizenBadge: 'Citizen Portal',
     authCitizenHeading: 'Track and verify your complaints',
@@ -151,6 +157,24 @@ Object.assign(translations.en, {
     authDepartmentSubmit: 'Login as Department',
     authDepartmentUsernamePlaceholder: 'Enter department username',
     authDepartmentPasswordPlaceholder: 'Enter department password',
+    authCaptchaLabel: 'Captcha',
+    authCaptchaPrompt: 'Solve the captcha below',
+    authCaptchaPlaceholder: 'Enter captcha answer',
+    authCaptchaRefresh: 'Refresh Captcha',
+    authCaptchaRequired: 'Please solve the captcha.',
+    authCaptchaInvalid: 'Captcha is incorrect or expired. Try again.',
+    authVerifyOtp: 'Verify OTP',
+    authVerifyingOtp: 'Verifying OTP...',
+    complaintSubmitError: 'Unable to submit complaint. Please try again.',
+    authOtpFailed: 'OTP verification failed.',
+    authOtpRequired: 'Please enter the OTP.',
+    authOtpInvalid: 'Invalid or expired OTP.',
+    authOtpSent: 'OTP sent to your email address.',
+    authOtpPlaceholder: 'Enter 6-digit OTP',
+    authResendOtp: 'Resend OTP',
+    authOtpResent: 'OTP resent successfully.',
+    authOtpResendError: 'Unable to resend OTP.',
+    validationEmail: 'Enter a valid email address.',
     footerBrandTitle: 'Public Service CRM',
     footerBrandBlurb: 'A transparent digital grievance redressal platform for citizens, departments, and administrators with accountable tracking and public-service oversight.',
     footerBadgePortal: '24x7 Digital Portal',
@@ -232,13 +256,19 @@ Object.assign(translations.hi, {
     signupDescription: 'एक बार साइन अप करें और शिकायतें दर्ज करें, प्रगति देखें तथा पूर्ण कार्य की पुष्टि करें।',
     nameLabel: 'नाम',
     mobileShortLabel: 'मोबाइल',
+    emailLabel: 'ईमेल',
     usernameLabel: 'यूज़रनेम',
     passwordLabel: 'पासवर्ड',
     signupNamePlaceholder: 'अपना नाम दर्ज करें',
     signupMobilePlaceholder: 'मोबाइल नंबर दर्ज करें',
+    signupEmailPlaceholder: 'अपना ईमेल पता दर्ज करें',
     signupUsernamePlaceholder: 'यूज़रनेम चुनें',
     signupPasswordPlaceholder: 'पासवर्ड चुनें',
     signupSubmit: 'साइन अप',
+    signupOtpTitle: 'ईमेल OTP सत्यापित करें',
+    signupOtpDescription: 'खाता पूरा करने के लिए अपने ईमेल पर भेजा गया OTP दर्ज करें।',
+    signupOtpEmailLabel: 'OTP भेजा गया है',
+    signupOtpInputLabel: 'OTP',
     authCitizenTitle: 'नागरिक लॉगिन',
     authCitizenBadge: 'नागरिक पोर्टल',
     authCitizenHeading: 'अपनी शिकायतें ट्रैक और सत्यापित करें',
@@ -263,6 +293,23 @@ Object.assign(translations.hi, {
     authDepartmentSubmit: 'विभाग के रूप में लॉगिन',
     authDepartmentUsernamePlaceholder: 'विभाग यूज़रनेम दर्ज करें',
     authDepartmentPasswordPlaceholder: 'विभाग पासवर्ड दर्ज करें',
+    authCaptchaLabel: 'कैप्चा',
+    authCaptchaPrompt: 'नीचे दिया गया कैप्चा हल करें',
+    authCaptchaPlaceholder: 'कैप्चा उत्तर दर्ज करें',
+    authCaptchaRefresh: 'कैप्चा रीफ्रेश करें',
+    authCaptchaRequired: 'कृपया कैप्चा हल करें।',
+    authCaptchaInvalid: 'कैप्चा गलत है या एक्सपायर हो गया है। फिर से कोशिश करें।',
+    authVerifyOtp: 'OTP सत्यापित करें',
+    authVerifyingOtp: 'OTP सत्यापित हो रहा है...',
+    authOtpFailed: 'OTP सत्यापन विफल रहा।',
+    authOtpRequired: 'कृपया OTP दर्ज करें।',
+    authOtpInvalid: 'OTP गलत है या एक्सपायर हो गया है।',
+    authOtpSent: 'OTP आपके ईमेल पर भेज दिया गया है।',
+    authOtpPlaceholder: '6-अंकों का OTP दर्ज करें',
+    authResendOtp: 'OTP फिर भेजें',
+    authOtpResent: 'OTP दोबारा भेज दिया गया।',
+    authOtpResendError: 'OTP दोबारा नहीं भेजा जा सका।',
+    validationEmail: 'कृपया मान्य ईमेल पता दर्ज करें।',
     footerBrandTitle: 'पब्लिक सर्विस CRM',
     footerBrandBlurb: 'नागरिकों, विभागों और प्रशासकों के लिए जवाबदेह ट्रैकिंग के साथ एक पारदर्शी डिजिटल शिकायत निवारण मंच।',
     footerBadgePortal: '24x7 डिजिटल पोर्टल',
@@ -413,11 +460,21 @@ function applyTranslations(language) {
         'signup-description': 'signupDescription',
         'signup-name-label': 'nameLabel',
         'signup-mobile-label': 'mobileShortLabel',
+        'signup-email-label': 'emailLabel',
         'signup-username-label': 'usernameLabel',
-        'signup-password-label': 'passwordLabel'
-        ,
+        'signup-password-label': 'passwordLabel',
+        'signup-captcha-label': 'authCaptchaLabel',
+        'signup-captcha-refresh': 'authCaptchaRefresh',
+        'signup-otp-modal-title': 'signupOtpTitle',
+        'signup-otp-description': 'signupOtpDescription',
+        'signup-otp-email-label': 'signupOtpEmailLabel',
+        'signup-otp-input-label': 'signupOtpInputLabel',
+        'signup-otp-submit-btn': 'authVerifyOtp',
+        'signup-otp-resend-btn': 'authResendOtp',
         'login-username-label': 'usernameLabel',
         'login-password-label': 'passwordLabel',
+        'login-captcha-label': 'authCaptchaLabel',
+        'login-captcha-refresh': 'authCaptchaRefresh',
         'login-link-signup-anchor': 'citizenSignup',
         'login-link-citizen-anchor': 'citizenLogin',
         'login-link-department-anchor': 'departmentLogin',
@@ -460,8 +517,12 @@ function applyTranslations(language) {
     setPlaceholder('tracking-id', 'trackingPlaceholder');
     setPlaceholder('signup-name', 'signupNamePlaceholder');
     setPlaceholder('signup-mobile', 'signupMobilePlaceholder');
+    setPlaceholder('signup-email', 'signupEmailPlaceholder');
     setPlaceholder('signup-username', 'signupUsernamePlaceholder');
     setPlaceholder('signup-password', 'signupPasswordPlaceholder');
+    setPlaceholder('signup-captcha-answer', 'authCaptchaPlaceholder');
+    setPlaceholder('signup-otp-input', 'authOtpPlaceholder');
+    setPlaceholder('login-captcha-answer', 'authCaptchaPlaceholder');
 
     const quickSubmit = document.getElementById('quick-submit-btn');
     const quickTrack = document.getElementById('quick-track-btn');
@@ -534,7 +595,7 @@ function clearFormErrors(fieldIds) {
 }
 
 function initializeAuthValidation() {
-    ['signup-name', 'signup-mobile', 'signup-username', 'signup-password', 'login-username', 'login-password'].forEach(id => {
+    ['signup-name', 'signup-mobile', 'signup-email', 'signup-username', 'signup-password', 'signup-captcha-answer', 'signup-otp-input', 'login-username', 'login-password', 'login-captcha-answer'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('input', () => setFieldError(id, ''));
@@ -542,8 +603,8 @@ function initializeAuthValidation() {
     });
 }
 
-function validateSignupForm({ name, mobile, username, password }) {
-    clearFormErrors(['signup-name', 'signup-mobile', 'signup-username', 'signup-password']);
+function validateSignupForm({ name, mobile, email, username, password }) {
+    clearFormErrors(['signup-name', 'signup-mobile', 'signup-email', 'signup-username', 'signup-password']);
     let valid = true;
 
     if (!name) {
@@ -552,6 +613,10 @@ function validateSignupForm({ name, mobile, username, password }) {
     }
     if (!/^\d{10}$/.test(mobile)) {
         setFieldError('signup-mobile', t('validationMobile'));
+        valid = false;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFieldError('signup-email', t('validationEmail') || 'Enter a valid email address');
         valid = false;
     }
     if (username.length < 4) {
@@ -713,7 +778,14 @@ function initializeEventListeners() {
     // Complaint form submission
     const complaintForm = document.getElementById('complaint-form');
     if (complaintForm) {
-        complaintForm.addEventListener('submit', handleComplaintSubmit);
+        const complaintHandler = (window.PSCRMCitizen && window.PSCRMCitizen.handleComplaintSubmit) || (typeof handleComplaintSubmit === 'function' && handleComplaintSubmit) || null;
+        if (complaintHandler) {
+            complaintForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                complaintHandler(e);
+            });
+        }
     }
     
     // Get location button
@@ -770,6 +842,11 @@ function initializeEventListeners() {
     const signupForm = document.getElementById('signup-form');
     if (signupForm) {
         signupForm.addEventListener('submit', handleSignup);
+    }
+    // Signup OTP form
+    const signupOtpForm = document.getElementById('signup-otp-form');
+    if (signupOtpForm) {
+        signupOtpForm.addEventListener('submit', handleSignupOtp);
     }
     
     // Logout button
@@ -889,6 +966,7 @@ const closeUserTypeModal = (...args) => window.PSCRMAuth.closeUserTypeModal(...a
 const selectUserType = (...args) => window.PSCRMAuth.selectUserType(...args);
 const openSignupModal = (...args) => window.PSCRMAuth.openSignupModal(...args);
 const handleSignup = (...args) => window.PSCRMAuth.handleSignup(...args);
+const handleSignupOtp = (...args) => window.PSCRMAuth.handleSignupOtp(...args);
 const handleLogin = (...args) => window.PSCRMAuth.handleLogin(...args);
 const handleLogout = (...args) => window.PSCRMAuth.handleLogout(...args);
 

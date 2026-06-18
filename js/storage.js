@@ -14,6 +14,8 @@ class StorageManager {
         this.apiBase = this.resolveApiBase();
         this.apiMode = true; // backend-first mode now works with the upgraded API
         this.jwtToken = null;
+        this.localCaptchaChallenge = null;
+        this.pendingSignupOtp = null;
 
         this.initializeData();
     }
@@ -447,11 +449,103 @@ class StorageManager {
 
     async registerUserAsync(user) {
         if (this.apiMode) {
-            const result = await this.apiRequest('/auth/signup', 'POST', user);
+            return await this.apiRequest('/auth/signup', 'POST', user);
+        }
+        if (!this.verifyLocalCaptcha(user.captchaToken, user.captchaAnswer)) {
+            throw new Error('Captcha verification failed');
+        }
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        this.pendingSignupOtp = {
+            otp,
+            expiresAt: Date.now() + 10 * 60 * 1000,
+            user
+        };
+        return {
+            requiresOtp: true,
+            email: user.email,
+            maskedEmail: user.email,
+            devOtp: otp
+        };
+    }
+
+    async verifySignupOtpAsync(email, otp) {
+        if (this.apiMode) {
+            const result = await this.apiRequest('/auth/signup/verify-otp', 'POST', { email, otp });
             this.setToken(result.token);
             return result.user;
         }
-        return this.registerUser(user);
+        if (!this.pendingSignupOtp) {
+            throw new Error('No pending OTP found');
+        }
+        if (this.pendingSignupOtp.expiresAt < Date.now()) {
+            this.pendingSignupOtp = null;
+            throw new Error('OTP has expired. Please sign up again.');
+        }
+        if (this.pendingSignupOtp.user.email !== email || this.pendingSignupOtp.otp !== String(otp || '').trim()) {
+            throw new Error('Invalid OTP');
+        }
+        const verifiedUser = this.registerUser(this.pendingSignupOtp.user);
+        this.pendingSignupOtp = null;
+        return verifiedUser;
+    }
+
+    async resendSignupOtpAsync(email) {
+        if (this.apiMode) {
+            return await this.apiRequest('/auth/signup/resend-otp', 'POST', { email });
+        }
+        if (!this.pendingSignupOtp || this.pendingSignupOtp.user.email !== email) {
+            throw new Error('No pending OTP found');
+        }
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        this.pendingSignupOtp = {
+            ...this.pendingSignupOtp,
+            otp,
+            expiresAt: Date.now() + 10 * 60 * 1000
+        };
+        return { ok: true, maskedEmail: email, devOtp: otp };
+    }
+
+    async getCaptchaChallengeAsync() {
+        if (this.apiMode) {
+            return await this.apiRequest('/auth/captcha', 'GET');
+        }
+        return this.createLocalCaptchaChallenge();
+    }
+
+    createLocalCaptchaChallenge() {
+        const left = Math.floor(Math.random() * 9) + 1;
+        const right = Math.floor(Math.random() * 9) + 1;
+        const operator = Math.random() > 0.5 ? '+' : '-';
+        const prompt = operator === '+' ? `${left} + ${right}` : `${left + right} - ${right}`;
+        const answer = operator === '+' ? left + right : left;
+        const token = `local-captcha-${Date.now()}`;
+        this.localCaptchaChallenge = {
+            token,
+            answer: String(answer),
+            expiresAt: Date.now() + 5 * 60 * 1000
+        };
+        return { token, prompt };
+    }
+
+    verifyLocalCaptcha(token, answer) {
+        const challenge = this.localCaptchaChallenge;
+        this.localCaptchaChallenge = null;
+        if (!challenge) return false;
+        if (challenge.token !== token) return false;
+        if (challenge.expiresAt < Date.now()) return false;
+        return challenge.answer === String(answer || '').trim();
+    }
+
+    async loginWithCaptchaAsync(credentials) {
+        if (this.apiMode) {
+            const result = await this.apiRequest('/auth/login', 'POST', credentials);
+            this.setToken(result.token);
+            return result.user;
+        }
+        if (!this.verifyLocalCaptcha(credentials.captchaToken, credentials.captchaAnswer)) {
+            throw new Error('Captcha verification failed');
+        }
+        return this.authenticateUser(credentials.username, credentials.password);
     }
 
     async verifyComplaintAsync(complaintId, decision, remarks) {
